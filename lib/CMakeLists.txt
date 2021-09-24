@@ -48,11 +48,11 @@ set(SOURCES
     WPA/FlowSensitiveStat.cpp
     WPA/WPAPass.cpp)
 
-add_llvm_loadable_module(Svf ${SOURCES})
+#add_llvm_loadable_module(Svf ${SOURCES})
 add_llvm_Library(LLVMSvf ${SOURCES})
 
 
 if(DEFINED IN_SOURCE_BUILD)
-    add_dependencies(Svf intrinsics_gen)
+    #add_dependencies(Svf intrinsics_gen)
     add_dependencies(LLVMSvf intrinsics_gen)
 endif()

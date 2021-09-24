@@ -28,7 +28,7 @@ if(NOT COMMAND add_llvm_loadable_module)
         list(APPEND CMAKE_MODULE_PATH "${LLVM_CMAKE_DIR}")
         include(AddLLVM)
 
-        add_definitions(${LLVM_DEFINITIONS})
+        # add_definitions(${LLVM_DEFINITIONS})
         include_directories(${LLVM_INCLUDE_DIRS})
 
     else()

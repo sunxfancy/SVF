@@ -256,6 +256,6 @@ void AndersenStat::performStat() {
  */
 void AndersenStat::printStat() {
 
-    std::cout << "\n****Andersen Pointer Analysis Statistics****\n";
-    PTAStat::printStat();
+    // std::cout << "\n****Andersen Pointer Analysis Statistics****\n";
+    // PTAStat::printStat();
 }

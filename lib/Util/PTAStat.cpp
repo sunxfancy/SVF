@@ -242,8 +242,8 @@ void PTAStat::callgraphStat() {
     PTNumStatMap["TotalEdge"] = totalEdge;
     PTNumStatMap["CalRetPairInCycle"] = edgeInCycle;
 
-    std::cout << "\n****CallGraph SCC Stat****\n";
-    PTAStat::printStat();
+    // std::cout << "\n****CallGraph SCC Stat****\n";
+    // PTAStat::printStat();
 
     PTNumStatMap.clear();
 

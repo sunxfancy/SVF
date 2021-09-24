@@ -55,7 +55,7 @@ static cl::opt<bool> PTSPrint("print-pts", cl::init(false),
 static cl::opt<bool> PTSAllPrint("print-all-pts", cl::init(false),
                                  cl::desc("Print all points-to set of both top-level and address-taken variables"));
 
-static cl::opt<bool> PStat("stat", cl::init(false),
+static cl::opt<bool> PStat("stat", cl::init(true),
                            cl::desc("Statistic for Pointer analysis"));
 
 static cl::opt<unsigned> statBudget("statlimit",  cl::init(20),
@@ -338,58 +338,58 @@ void BVDataPTAImpl::expandFIObjs(const PointsTo& pts, PointsTo& expandedPts) {
 void BVDataPTAImpl::writeToFile(const string& filename) {
     outs() << "Storing pointer analysis results to '" << filename << "'...";
 
-    // error_code err;
-    // tool_output_file F(filename.c_str(), err, sys::fs::F_None);
-    // if (err) {
-    //     outs() << "  error opening file for writing!\n";
-    //     F.os().clear_error();
-    //     return;
-    // }
+    error_code err;
+    tool_output_file F(filename.c_str(), err, sys::fs::F_None);
+    if (err) {
+        outs() << "  error opening file for writing!\n";
+        F.os().clear_error();
+        return;
+    }
 
-    // // Write analysis results to file
-    // PTDataTy *ptD = getPTDataTy();
-    // auto &ptsMap = ptD->getPtsMap();
-    // for (auto it = ptsMap.begin(), ie = ptsMap.end(); it != ie; ++it) {
-    //     NodeID var = it->first;
-    //     const PointsTo &pts = getPts(var);
+    // Write analysis results to file
+    PTDataTy *ptD = getPTDataTy();
+    auto &ptsMap = ptD->getPtsMap();
+    for (auto it = ptsMap.begin(), ie = ptsMap.end(); it != ie; ++it) {
+        NodeID var = it->first;
+        const PointsTo &pts = getPts(var);
 
-    //     F.os() << var << " -> { ";
-    //     if (pts.empty()) {
-    //         F.os() << " ";
-    //     } else {
-    //         for (auto it = pts.begin(), ie = pts.end(); it != ie; ++it) {
-    //             F.os() << *it << " ";
-    //         }
-    //     }
-    //     F.os() << "}\n";
-    // }
+        F.os() << var << " -> { ";
+        if (pts.empty()) {
+            F.os() << " ";
+        } else {
+            for (auto it = pts.begin(), ie = pts.end(); it != ie; ++it) {
+                F.os() << *it << " ";
+            }
+        }
+        F.os() << "}\n";
+    }
 
-    // // Write PAG offset nodes to file
-    // NodeID firstGepObjNode = 0;
-    // for (auto it = pag->begin(), ie = pag->end(); it != ie; ++it) {
-    //     PAGNode* pagNode = it->second;
-    //     if (GepObjPN *gepObjPN = dyn_cast<GepObjPN>(pagNode)) {
-    //         if (firstGepObjNode > gepObjPN->getId()) {
-    //             firstGepObjNode = gepObjPN->getId();
-    //         }
-    //     }
-    // }
-    // for (NodeID i = firstGepObjNode, e = pag->getTotalNodeNum(); i != e; ++i) {
-    //     GepObjPN *gepObjPN = dyn_cast<GepObjPN>(pag->getPAGNode(i));
-    //     if (gepObjPN) {
-    //         F.os() << i << " ";
-    //         F.os() << pag->getBaseObjNode(i) << " ";
-    //         F.os() << gepObjPN->getLocationSet().getOffset() << "\n";
-    //     }
-    // }
+    // Write PAG offset nodes to file
+    NodeID firstGepObjNode = 0;
+    for (auto it = pag->begin(), ie = pag->end(); it != ie; ++it) {
+        PAGNode* pagNode = it->second;
+        if (GepObjPN *gepObjPN = dyn_cast<GepObjPN>(pagNode)) {
+            if (firstGepObjNode > gepObjPN->getId()) {
+                firstGepObjNode = gepObjPN->getId();
+            }
+        }
+    }
+    for (NodeID i = firstGepObjNode, e = pag->getTotalNodeNum(); i != e; ++i) {
+        GepObjPN *gepObjPN = dyn_cast<GepObjPN>(pag->getPAGNode(i));
+        if (gepObjPN) {
+            F.os() << i << " ";
+            F.os() << pag->getBaseObjNode(i) << " ";
+            F.os() << gepObjPN->getLocationSet().getOffset() << "\n";
+        }
+    }
 
-    // // Job finish and close file
-    // F.os().close();
-    // if (!F.os().has_error()) {
-    //     outs() << "\n";
-    //     F.keep();
-    //     return;
-    // }
+    // Job finish and close file
+    F.os().close();
+    if (!F.os().has_error()) {
+        outs() << "\n";
+        F.keep();
+        return;
+    }
 }
 
 /*!
@@ -724,29 +724,29 @@ void PointerAnalysis::validateSuccessTests(const char* fun) {
         if(!checkFun->use_empty())
             outs() << "[" << this->PTAName() << "] Checking " << fun << "\n";
 
-        for (Value::use_iterator i = checkFun->use_begin(), e =
-                    checkFun->use_end(); i != e; ++i)
+        for (Value::user_iterator i = checkFun->user_begin(), e =
+                    checkFun->user_end(); i != e; ++i)
             if (CallInst *call = dyn_cast<CallInst>(*i)) {
                 assert(call->getNumArgOperands() == 2
                        && "arguments should be two pointers!!");
                 Value* V1 = call->getArgOperand(0);
                 Value* V2 = call->getArgOperand(1);
-		llvm::AliasAnalysis::AliasResult aliasRes = alias(V1, V2);
+                AliasResult aliasRes = alias(V1, V2);
 
                 bool checkSuccessful = false;
                 if (strcmp(fun, "MAYALIAS") == 0 || strcmp(fun, "_Z8MAYALIASPvS_") == 0) {
-                    if (aliasRes ==  AliasAnalysis::MayAlias || aliasRes ==  AliasAnalysis::MustAlias)
+                    if (aliasRes == MayAlias || aliasRes == MustAlias)
                         checkSuccessful = true;
                 } else if (strcmp(fun, "NOALIAS") == 0 || strcmp(fun, "_Z7NOALIASPvS_") == 0) {
-                    if (aliasRes ==  AliasAnalysis::NoAlias)
+                    if (aliasRes == NoAlias)
                         checkSuccessful = true;
                 } else if (strcmp(fun, "MUSTALIAS") == 0 || strcmp(fun, "_Z9MUSTALIASPvS_") == 0) {
                     // change to must alias when our analysis support it
-                    if (aliasRes == AliasAnalysis::MayAlias || aliasRes == AliasAnalysis::MustAlias)
+                    if (aliasRes == MayAlias || aliasRes == MustAlias)
                         checkSuccessful = true;
                 } else if (strcmp(fun, "PARTIALALIAS") == 0 || strcmp(fun, "_Z12PARTIALALIASPvS_") == 0) {
                     // change to partial alias when our analysis support it
-                    if (aliasRes == AliasAnalysis::MayAlias)
+                    if (aliasRes == MayAlias)
                         checkSuccessful = true;
                 } else
                     assert(false && "not supported alias check!!");
@@ -775,23 +775,23 @@ void PointerAnalysis::validateExpectedFailureTests(const char* fun) {
         if(!checkFun->use_empty())
             outs() << "[" << this->PTAName() << "] Checking " << fun << "\n";
 
-        for (Value::use_iterator i = checkFun->use_begin(), e =
-                    checkFun->use_end(); i != e; ++i)
+        for (Value::user_iterator i = checkFun->user_begin(), e =
+                    checkFun->user_end(); i != e; ++i)
             if (CallInst *call = dyn_cast<CallInst>(*i)) {
                 assert(call->getNumArgOperands() == 2
                        && "arguments should be two pointers!!");
                 Value* V1 = call->getArgOperand(0);
                 Value* V2 = call->getArgOperand(1);
-		llvm::AliasAnalysis::AliasResult aliasRes = alias(V1, V2);
+                AliasResult aliasRes = alias(V1, V2);
 
                 bool expectedFailure = false;
                 if (strcmp(fun, "EXPECTEDFAIL_MAYALIAS") == 0) {
                     // change to must alias when our analysis support it
-                    if (aliasRes == AliasAnalysis::NoAlias)
+                    if (aliasRes == NoAlias)
                         expectedFailure = true;
                 } else if (strcmp(fun, "EXPECTEDFAIL_NOALIAS") == 0) {
                     // change to partial alias when our analysis support it
-                    if (aliasRes == AliasAnalysis::MayAlias || aliasRes == AliasAnalysis::PartialAlias || aliasRes == AliasAnalysis::MustAlias)
+                    if (aliasRes == MayAlias || aliasRes == PartialAlias || aliasRes == MustAlias)
                         expectedFailure = true;
                 } else
                     assert(false && "not supported alias check!!");
@@ -814,15 +814,15 @@ void PointerAnalysis::validateExpectedFailureTests(const char* fun) {
 /*!
  * Return alias results based on our points-to/alias analysis
  */
-llvm::AliasAnalysis::AliasResult BVDataPTAImpl::alias(const llvm::AliasAnalysis::Location &LocA,
-                                       const llvm::AliasAnalysis::Location &LocB) {
+llvm::AliasResult BVDataPTAImpl::alias(const llvm::MemoryLocation &LocA,
+                                       const llvm::MemoryLocation &LocB) {
     return alias(LocA.Ptr, LocB.Ptr);
 }
 
 /*!
  * Return alias results based on our points-to/alias analysis
  */
-llvm::AliasAnalysis::AliasResult BVDataPTAImpl::alias(const Value* V1,
+llvm::AliasResult BVDataPTAImpl::alias(const Value* V1,
                                        const Value* V2) {
     return alias(pag->getValueNode(V1),pag->getValueNode(V2));
 }
@@ -830,21 +830,22 @@ llvm::AliasAnalysis::AliasResult BVDataPTAImpl::alias(const Value* V1,
 /*!
  * Return alias results based on our points-to/alias analysis
  */
-llvm::AliasAnalysis::AliasResult BVDataPTAImpl::alias(NodeID node1, NodeID node2) {
+llvm::AliasResult BVDataPTAImpl::alias(NodeID node1, NodeID node2) {
     return alias(getPts(node1),getPts(node2));
 }
 
 /*!
  * Return alias results based on our points-to/alias analysis
  */
-llvm::AliasAnalysis::AliasResult BVDataPTAImpl::alias(const PointsTo& p1, const PointsTo& p2) {
+llvm::AliasResult BVDataPTAImpl::alias(const PointsTo& p1, const PointsTo& p2) {
+
     PointsTo pts1;
     expandFIObjs(p1,pts1);
     PointsTo pts2;
     expandFIObjs(p2,pts2);
 
     if (containBlackHoleNode(pts1) || containBlackHoleNode(pts2) || pts1.intersects(pts2))
-        return AliasAnalysis::MayAlias;
+        return MayAlias;
     else
-        return AliasAnalysis::NoAlias;
+        return NoAlias;
 }

@@ -31,8 +31,6 @@
 #include "MSSA/SVFGBuilder.h"
 #include "WPA/Andersen.h"
 
-#include <llvm/CodeGen/CommandFlags.h>
-
 using namespace llvm;
 using namespace analysisUtil;
 
@@ -101,7 +99,7 @@ bool SVFGBuilder::build(SVFG* graph,BVDataPTAImpl* pta) {
         if (analysisUtil::isExtCall(&fun))
             continue;
 
-        // dt.recalculate(fun);
+        dt.recalculate(fun);
         df.runOnDT(dt);
 
         mssa->buildMemSSA(fun, &df, &dt);

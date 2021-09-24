@@ -192,13 +192,6 @@ public:
         translateLLVMTypeToPTAType(pag);
     }
 
-    /// Destructor
-    ~TypeSystem() {
-        for (auto i : VarToTypeSetMap) {
-            delete i.second;
-        }
-    }
-
     /// Has typeset or not
     inline bool hasTypeSet(NodeID var) const {
         const_iterator it = VarToTypeSetMap.find(var);
